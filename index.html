@@ -752,14 +752,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   /* 교사별 시간표 */
   .tt-wrap{border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;}
   .tt-table{min-width:0;width:100%;table-layout:fixed;}
-  .tt-table th{font-size:10px;padding:6px 2px;}
-  .tt-table .td-name{min-width:80px;width:80px;max-width:80px;font-size:11px;font-weight:800;padding:6px 4px;}
-  .tt-table td{height:52px;}
-  .cell{min-height:48px;border-radius:8px;padding:4px 3px;}
-  .cell .subj{font-size:12px;font-weight:800;}
-  .cell .cls{font-size:10px;}
-  .cell .merge-note{font-size:9px;}
-  .tt-table .remark-cell,.tt-table .remark-head{min-width:48px;width:48px;}
+  .tt-table th{font-size:9px;padding:3px 1px;}
+  .tt-table .td-name{min-width:70px;width:70px;max-width:70px;font-size:10px;font-weight:700;padding:3px 3px;}
+  .tt-table td{height:36px;}
+  .cell{min-height:32px;border-radius:5px;padding:2px 2px;}
+  .cell .subj{font-size:10px;font-weight:800;}
+  .cell .cls{font-size:8px;}
+  .cell .merge-note{font-size:7.5px;}
+  .tt-table .remark-cell,.tt-table .remark-head{min-width:40px;width:40px;}
 
   /* 교실별 시간표 */
   .ct-wrap{-webkit-overflow-scrolling:touch;}
@@ -2507,12 +2507,12 @@ function renderTT(){
   if(isMobile()){
     // 모바일: 교사명 고정폭 + 교시별 충분한 너비
     const pCount = PERIODS[mobileSelectedDay] || 6;
-    const pWidth = Math.floor((window.innerWidth - 80 - 48) / pCount); // 교사명80 비고48 제외
-    const pw = Math.max(pWidth, 52); // 최소 52px
+    const pWidth = Math.floor((window.innerWidth - 70 - 40) / pCount); // 교사명70 비고40 제외
+    const pw = Math.max(pWidth, 36); // 최소 36px
     html += '<colgroup>';
-    html += '<col style="width:80px;min-width:80px;">';
+    html += '<col style="width:70px;min-width:70px;">';
     for(let i=0;i<pCount;i++) html+=`<col style="width:${pw}px;min-width:${pw}px;">`;
-    html += '<col style="width:48px;min-width:48px;"></colgroup>';
+    html += '<col style="width:40px;min-width:40px;"></colgroup>';
   } else {
     html += '<colgroup><col style="width:95px;min-width:95px;">';
     for(let i=0;i<totalPeriods;i++) html+='<col>';
