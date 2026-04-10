@@ -73,11 +73,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .topbar-meta i{font-size:13px;opacity:.8;}
 #todayTxt{font-weight:700;font-size:13px;letter-spacing:-.1px;}
 .date-label{display:block;font-size:10px;font-weight:600;color:var(--text3);margin-top:2px;}
-@media(max-width:900px){
-  .topbar{align-items:flex-start;gap:10px;flex-direction:column;padding:14px 16px;}
-  .topbar-right{width:100%;justify-content:space-between;}
-}
-
 /* ────── 탭 ────── */
 .tabs{
   background:var(--white);
@@ -269,6 +264,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .panel.panel-candidates{width:min(1180px,86vw);max-width:86vw;}
 .panel.panel-confirm{width:min(700px,72vw);max-width:72vw;}
 .panel.on{display:flex !important;transform:translate(-50%,-50%) scale(1);}
+@media(max-width:768px){
+  .panel{
+    left:0 !important;top:auto !important;bottom:0 !important;
+    width:100vw !important;max-width:100vw !important;
+    max-height:86vh !important;
+    border-radius:20px 20px 0 0 !important;
+    transform:translateY(40px) scale(1) !important;
+  }
+  .panel.on{transform:translateY(0) scale(1) !important;}
+  .panel.panel-candidates,.panel.panel-confirm{
+    width:100vw !important;max-width:100vw !important;
+  }
+}
 .panel-head{
   padding:18px 22px;
   background:linear-gradient(135deg,#1E3A8A 0%,#1D4ED8 100%);
@@ -319,7 +327,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 .day-group{margin:0;}
 .days-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start;}
-@media(max-width:1100px){.days-grid{grid-template-columns:repeat(5,minmax(180px,1fr));overflow-x:auto;padding-bottom:4px;}}
 .day-group{
   min-width:0;
   background:linear-gradient(180deg,#FAFBFC 0%,#F3F4F6 100%);
@@ -643,9 +650,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   gap:16px;
   align-items:start;
 }
-@media(max-width:1200px){
-  .tt-dual-layout{grid-template-columns:1fr;}
-}
 .tt-dual-left,.tt-dual-right{
   min-width:0;
   background:var(--white);
@@ -680,174 +684,188 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 /* ══════════════════════════════════════════════════════════
    모바일 반응형 (max-width: 768px)
 ══════════════════════════════════════════════════════════ */
+/* ── 아주 작은 화면 (max-width: 400px) ── */
+
+/* ═══════════════════════════════════════════════════════
+   반응형 — 통합 미디어쿼리
+   1024px 이하: 태블릿
+   768px  이하: 모바일
+   400px  이하: 소형
+═══════════════════════════════════════════════════════ */
+
+/* ── 태블릿 (≤1024px) ── */
+@media(max-width:1024px){
+  .days-grid{
+    grid-template-columns:repeat(5,minmax(160px,1fr));
+    overflow-x:auto;padding-bottom:4px;
+  }
+  .stats{grid-template-columns:repeat(3,1fr);}
+  .event-layout{grid-template-columns:1fr;}
+  .block-layout{grid-template-columns:1fr !important;}
+  .makeup-grid{grid-template-columns:repeat(3,1fr);}
+}
+
+/* ── 모바일 (≤768px) ── */
 @media(max-width:768px){
 
-  /* ── 헤더 ── */
-  .topbar{padding:10px 12px;gap:8px;}
-  .topbar h1{font-size:13px;}
+  /* 헤더 */
+  .topbar{
+    flex-direction:column;align-items:flex-start;
+    padding:10px 14px;gap:8px;min-height:auto;
+  }
+  .topbar-right{width:100%;justify-content:space-between;gap:6px;}
+  .topbar h1{font-size:14px;}
   .topbar-school{font-size:10px;}
-  .topbar-logo{width:32px;height:32px;font-size:16px;flex:0 0 32px;}
-  .topbar-right{gap:6px;}
-  .topbar-controls{padding:4px 8px;gap:6px;}
+  .topbar-logo{width:34px;height:34px;font-size:17px;flex:0 0 34px;}
+  .topbar-controls{padding:5px 10px;gap:5px;flex-wrap:wrap;}
   .topbar-controls label{font-size:10px;}
-  .topbar-controls select{font-size:11px;padding:4px 6px;min-width:60px;}
-  .topbar-meta{padding:5px 10px;gap:6px;}
-  #todayTxt{font-size:11px;}
+  .topbar-controls select{font-size:11px;padding:4px 6px;min-width:62px;}
+  .topbar-meta{padding:5px 10px;gap:5px;}
+  #todayTxt{font-size:12px;}
 
-  /* ── 탭: 가로 스크롤 ── */
+  /* 탭 */
   .tabs{
-    padding:0 8px;
-    overflow-x:auto;
-    overflow-y:hidden;
+    padding:0 6px;gap:0;
+    overflow-x:auto;overflow-y:hidden;
     -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-    flex-wrap:nowrap;
-    gap:0;
+    scrollbar-width:none;flex-wrap:nowrap;
   }
   .tabs::-webkit-scrollbar{display:none;}
-  .tab{
-    padding:10px 10px;
-    font-size:11px;
-    flex-shrink:0;
-    gap:4px;
-    white-space:nowrap;
-  }
+  .tab{padding:10px 9px;font-size:11px;flex-shrink:0;gap:3px;white-space:nowrap;}
   .tab i{font-size:11px;}
-  .tab span{display:none;} /* 뱃지 숨김 */
+  .tab span{display:none;}
 
-  /* ── 본문 패딩 ── */
-  .body{padding:12px 10px 24px;}
+  /* 본문 */
+  .body{padding:12px 10px 28px;}
+  .page-title{font-size:16px;margin-bottom:4px;}
+  .page-subtitle{font-size:11px;margin-bottom:12px;}
 
-  /* ── 페이지 제목 ── */
-  .page-title{font-size:16px;}
-  .page-subtitle{font-size:11px;}
-
-  /* ── 필터 바 ── */
-  .filter-bar{padding:10px 12px;gap:8px;}
+  /* 필터 바 */
+  .filter-bar{padding:10px 12px;gap:7px;flex-wrap:wrap;}
   .filter-bar label{font-size:11px;}
   .filter-bar input,.filter-bar select{font-size:11px;padding:6px 8px;}
 
-  /* ── 범례 ── */
+  /* 범례 */
   .legend-row{gap:5px;}
-  .legend-chip{padding:4px 8px;font-size:10px;}
+  .legend-chip{padding:4px 8px;font-size:10px;gap:5px;}
 
-  /* ── 교사별 시간표: 가로 스크롤 ── */
+  /* 교사별 시간표 */
   .tt-wrap{border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .tt-table{min-width:900px;}
+  .tt-table{min-width:860px;}
   .tt-table th{font-size:9px;padding:5px 1px;}
-  .tt-table .td-name{min-width:70px;width:70px;max-width:70px;font-size:10px;padding:4px 4px;}
-  .tt-table td{height:40px;}
+  .tt-table .td-name{min-width:66px;width:66px;max-width:66px;font-size:10px;padding:4px 3px;}
+  .tt-table td{height:38px;}
   .cell .subj{font-size:9.5px;}
   .cell .cls{font-size:8px;}
+  .cell .merge-note{font-size:7.5px;}
+  .tt-table .remark-cell,.tt-table .remark-head{min-width:48px;width:48px;}
 
-  /* ── 교실별 시간표: 가로 스크롤 ── */
+  /* 교실별 시간표 */
   .ct-wrap{-webkit-overflow-scrolling:touch;}
-  .ct-master-table{min-width:900px;}
+  .ct-master-table{min-width:860px;}
   .ct-h-day-group{font-size:9px;padding:4px 2px;}
-  .ct-h-p{min-width:36px;width:36px;font-size:8px;}
-  .ct-h-blank{min-width:32px;width:32px;}
-  .ct-cls-cell{min-width:32px;width:32px;font-size:10px;}
-  .ct-c{height:36px;}
+  .ct-h-date{font-size:8px;}
+  .ct-h-p{min-width:36px;width:36px;font-size:8px;padding:2px 1px;}
+  .ct-h-blank,.ct-cls-cell{min-width:32px;width:32px;font-size:10px;}
+  .ct-c{height:36px;padding:1px 2px;}
   .ct-s{font-size:9px;}
   .ct-t{font-size:7.5px;}
-  .ct-remark-cell{min-width:50px;width:50px;font-size:7px;}
-  .ct-week-label{padding:10px 12px 6px;font-size:12px;}
+  .ct-remark-cell{min-width:48px;width:48px;font-size:7px;}
+  .ct-week-label{padding:10px 12px 6px;font-size:12px;gap:6px;}
   .ct-week-label strong{font-size:13px;}
+  .ct-all-label{font-size:10px;padding:1px 7px;}
   .ct-grade-row td{font-size:10px;padding:4px 6px;}
 
-  /* ── 패널(모달) ── */
+  /* 패널 (하단 시트) */
   .panel{
     width:100vw !important;max-width:100vw !important;
     left:0 !important;top:auto !important;bottom:0 !important;
-    transform:translate(0,0) scale(.96) !important;
+    transform:translateY(0) scale(.98) !important;
     border-radius:20px 20px 0 0 !important;
-    max-height:85vh !important;
+    max-height:86vh !important;
   }
-
+  .panel.on{transform:translateY(0) scale(1) !important;}
   .panel-body{padding:14px 14px 8px;}
-  .panel-head{padding:14px 16px;}
+  .panel-head{padding:13px 16px;}
   .panel-head h3{font-size:13px;}
+  .panel-foot{padding:12px 14px;}
 
-  /* ── 출력 모달 ── */
-  .print-modal{
-    width:100vw !important;max-width:100vw !important;
-    border-radius:20px 20px 0 0 !important;
-    margin-top:auto;
-  }
-
-  /* ── 신청 현황 ── */
-  .req-body{grid-template-columns:1fr 20px 1fr;gap:5px;}
-  .req-slot .t{font-size:11px;}
-  .req-slot .d{font-size:10px;}
-  .btn-row{flex-wrap:wrap;}
-  .btn-sm{font-size:11px;padding:5px 10px;}
-
-  /* ── 통계 ── */
-  .stats{grid-template-columns:repeat(3,1fr);gap:8px;}
-  .stat{padding:10px;}
-  .stat-n{font-size:22px;}
-  .stat-icon{font-size:18px;margin-bottom:4px;}
-
-  /* ── 이벤트 레이아웃 ── */
-  .event-layout{grid-template-columns:1fr;}
-  .event-list-card{padding:16px;}
-  .form-card{padding:16px 14px;}
-
-  /* ── 블록 레이아웃 ── */
-  .block-layout{grid-template-columns:1fr !important;}
-  .block-form-card{padding:14px;}
-
-  /* ── 보강 그리드 ── */
-  .makeup-grid{grid-template-columns:repeat(2,1fr);}
-
-  /* ── 버튼 ── */
-  .btn{font-size:12px;padding:9px 14px;}
-
-  /* ── days 그리드 (교환 후보) ── */
-  .days-grid{
-    grid-template-columns:repeat(5,minmax(140px,1fr)) !important;
-    overflow-x:auto;
-  }
-
-  /* ── 액션 메뉴 ── */
-  .action-menu{width:min(290px,92vw) !important;}
-
-  /* ── 학기 설정 카드 ── */
-  #semesterConfigCard > div:first-of-type{
-    grid-template-columns:1fr 1fr !important;
-  }
-
-  /* ── 공휴일 자동 등록 ── */
-  .form-card > div[style*="grid-template-columns:120px"]{
-    grid-template-columns:1fr 1fr !important;
-  }
-}
-
-/* ── 아주 작은 화면 (max-width: 400px) ── */
-@media(max-width:400px){
-  .stats{grid-template-columns:repeat(2,1fr);}
-  .topbar-meta{display:none;} /* 날짜 영역 숨김 */
-  .tab{padding:9px 7px;font-size:10px;}
-  .ct-master-table{min-width:800px;}
-  .tt-table{min-width:800px;}
-}
-
-@media(max-width:768px){
+  /* 출력 모달 */
   .print-overlay{align-items:flex-end !important;}
   .print-modal{
     width:100vw !important;max-width:100vw !important;
     border-radius:20px 20px 0 0 !important;
     max-height:88vh;
   }
-  .print-modal-head{padding:12px 16px;}
-  .print-modal-body{padding:12px 14px;}
-  .print-modal-foot{padding:10px 14px;gap:8px;}
-  .reason-section{padding:10px 12px;}
-  .reason-title{font-size:12px;}
-  .reason-chip{font-size:11px;padding:6px 10px;}
-  .reason-grid{gap:6px;}
+  .print-modal-head{padding:13px 16px;}
+  .print-modal-foot{flex-wrap:wrap;gap:6px;padding:10px 14px;}
+
+  /* 액션 메뉴 */
+  .action-menu{width:min(300px,94vw) !important;}
+
+  /* 신청 현황 */
+  .req-item{padding:12px;}
+  .req-body{grid-template-columns:1fr 18px 1fr;gap:4px;}
+  .req-slot .t{font-size:11px;}
+  .req-slot .d{font-size:10px;}
+  .btn-row{flex-wrap:wrap;gap:4px;}
+  .btn-sm{font-size:11px;padding:5px 9px;}
+
+  /* 통계 */
+  .stats{grid-template-columns:repeat(3,1fr);gap:8px;}
+  .stat{padding:10px 8px;border-radius:12px;}
+  .stat-n{font-size:22px;}
+  .stat-icon{font-size:18px;margin-bottom:4px;}
+  .stat-l{font-size:10px;}
+
+  /* 이벤트/블록 */
+  .event-layout{grid-template-columns:1fr;gap:16px;}
+  .event-list-card,.form-card{padding:14px 12px;}
+  .block-layout{grid-template-columns:1fr !important;}
+  .block-form-card{padding:14px 12px;}
+  .makeup-grid{grid-template-columns:repeat(2,1fr);}
+
+  /* 교환 후보 그리드 */
+  .days-grid{
+    grid-template-columns:repeat(5,minmax(130px,1fr)) !important;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+  }
+  .slot-item{min-height:90px;padding:10px 10px 8px;}
+  .slot-teacher{font-size:17px;}
+  .slot-line{font-size:14px;}
+
+  /* 카드/폼 */
+  .form-card,.event-list-card{border-radius:16px;}
+  .card-title{font-size:15px;}
+  .field-grid{grid-template-columns:1fr 1fr;}
+  .field-grid.three{grid-template-columns:1fr 1fr;}
+  .scope-row{grid-template-columns:1fr 1fr;}
+
+  /* 학기 설정 */
+  #semesterConfigCard > div:first-of-type{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .form-card > div[style*="grid-template-columns:120px"]{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  /* 관리자 FAB */
+  #adminFab{bottom:14px;right:12px;}
 }
 
+/* ── 소형 모바일 (≤400px) ── */
+@media(max-width:400px){
+  .topbar-meta{display:none;}
+  .tab{padding:9px 7px;font-size:10px;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .ct-master-table{min-width:760px;}
+  .tt-table{min-width:760px;}
+  .ct-h-p{min-width:30px;width:30px;}
+  .ct-c{height:32px;}
+  .body{padding:10px 8px 24px;}
+  .filter-bar{padding:8px 10px;}
+  .days-grid{grid-template-columns:repeat(5,minmax(110px,1fr)) !important;}
+}
 /* ────── @media print ────── */
 @media print{
   body > *{display:none !important;}
@@ -1004,7 +1022,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* ────── 교환 불가 탭 ────── */
 .block-layout{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:20px;align-items:start;}
-@media(max-width:960px){.block-layout{grid-template-columns:1fr;}}
 .block-list-card,.block-form-card{
   background:var(--white);border:1px solid var(--border);
   border-radius:24px;box-shadow:var(--shadow);padding:24px;
@@ -1070,7 +1087,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* ────── 보강 카드 ────── */
 .makeup-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
-@media(max-width:960px){.makeup-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 .makeup-card{
   border:1px solid #DDD6FE;
   background:linear-gradient(135deg,#FAFAFF 0%,#F5F0FF 100%);
@@ -1111,134 +1127,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 }
 
 /* ────── 미디어 쿼리 ────── */
-@media(max-width:960px){
-  .event-layout{grid-template-columns:1fr;padding:0;}
-  .field-grid,.field-grid.three,.scope-row{grid-template-columns:1fr;}
-  .tt-table{min-width:1080px;}
-  .stats{grid-template-columns:repeat(3,1fr);}
-}
-
 /* ══════════════════════════════════════════
    모바일 반응형 (768px 이하)
 ══════════════════════════════════════════ */
-@media(max-width:768px){
-  /* ── 기본 여백 ── */
-  .body{padding:12px 10px 24px;}
-
-  /* ── 탭: 아이콘만 표시 + 가로 스크롤 ── */
-  .tabs{
-    padding:0 8px;
-    gap:0;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-  }
-  .tabs::-webkit-scrollbar{display:none;}
-  .tab{
-    padding:12px 10px;
-    font-size:0;          /* 텍스트 숨김 */
-    min-width:44px;
-    justify-content:center;
-    flex-shrink:0;
-  }
-  .tab i{font-size:16px;}  /* 아이콘만 크게 */
-  .tab span{display:none;} /* 뱃지 숨김 */
-  .tab.on i{color:var(--blue-mid);}
-
-  /* ── 페이지 제목 ── */
-  .page-title{font-size:16px;margin-bottom:4px;}
-  .page-subtitle{font-size:11px;margin-bottom:12px;}
-
-  /* ── 필터 바 ── */
-  .filter-bar{
-    padding:10px 12px;
-    gap:8px;
-  }
-  .filter-bar input{width:100px !important;}
-
-  /* ── 전체 시간표: 가로 스크롤 ── */
-  .tt-wrap{
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    border-radius:12px;
-  }
-  .tt-table{min-width:900px;}
-  .tt-table td{height:44px;}
-
-  /* ── 신청현황 ── */
-  .req-body{grid-template-columns:1fr 24px 1fr;gap:4px;}
-  .req-slot .t{font-size:12px;}
-  .req-slot .d{font-size:10px;}
-  .stats{grid-template-columns:repeat(3,1fr);gap:8px;}
-  .stat{padding:10px 8px;border-radius:12px;}
-  .stat-n{font-size:22px;}
-  .stat-icon{font-size:18px;margin-bottom:6px;}
-
-  /* ── 교실별 시간표: 가로 스크롤 ── */
-  .ct-wrap{
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-  }
-  .ct-master-table{min-width:900px;}
-  .ct-week-label{padding:10px 12px 6px;font-size:12px;}
-  .ct-week-label strong{font-size:13px;}
-
-  /* ── 요일별 패널(교환 신청) ── */
-  .days-grid{
-    grid-template-columns:1fr !important;
-    overflow-x:visible;
-  }
-  .slot-teacher{font-size:16px;}
-  .slot-line{font-size:13px;}
-
-  /* ── 보강 그리드 ── */
-  .makeup-grid{grid-template-columns:1fr 1fr;}
-
-  /* ── 패널(팝업) ── */
-  .panel{
-    width:100vw !important;
-    max-width:100vw !important;
-    max-height:92vh;
-    border-radius:20px 20px 0 0;
-    top:auto !important;
-    bottom:0;
-    left:0 !important;
-  }
-  .panel-head{padding:14px 16px;}
-  .panel-body{padding:14px 16px 8px;}
-  .panel-foot{padding:12px 16px;}
-
-  /* ── 행사/설정 폼 ── */
-  .form-card,.event-list-card{padding:16px 14px;border-radius:16px;}
-  .event-layout{grid-template-columns:1fr;}
-
-  /* ── 범례 ── */
-  .legend-row{gap:6px;}
-  .legend-chip{padding:5px 10px;font-size:11px;}
-
-  /* ── 액션 메뉴 ── */
-  .action-menu{width:calc(100vw - 32px) !important;max-width:320px;}
-}
-
 /* 작은 폰 (360px 이하) */
-@media(max-width:360px){
-  .stats{grid-template-columns:repeat(2,1fr);}
-  .makeup-grid{grid-template-columns:1fr;}
-  .body{padding:8px 8px 20px;}
-}
-
 /* ══════════════════════════════════════════
    모바일: 패널 슬라이드 업 애니메이션
 ══════════════════════════════════════════ */
-@media(max-width:768px){
-  .panel{
-    transition:transform .28s cubic-bezier(.32,1,.56,1) !important;
-    transform:translateY(100%) !important;
-  }
-  .panel.on{transform:translateY(0) !important;}
-  .panel-overlay.on{display:block !important;}
-}
-
 /* ── 유틸 ────── */
 .topbar{background:linear-gradient(135deg,#1E3A8A 0%,#1D4ED8 55%,#2563EB 100%);box-shadow:0 4px 24px rgba(30,64,175,.35);position:sticky;top:0;z-index:10;}
 </style>
