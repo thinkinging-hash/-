@@ -750,14 +750,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .legend-chip{padding:4px 8px;font-size:10px;gap:5px;}
 
   /* 교사별 시간표 */
-  .tt-wrap{border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  .tt-table{min-width:860px;}
-  .tt-table th{font-size:9px;padding:5px 1px;}
-  .tt-table .td-name{min-width:66px;width:66px;max-width:66px;font-size:10px;padding:4px 3px;}
-  .tt-table td{height:38px;}
-  .cell .subj{font-size:9.5px;}
-  .cell .cls{font-size:8px;}
-  .cell .merge-note{font-size:7.5px;}
+  .tt-wrap{border-radius:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;}
+  .tt-table{min-width:0;width:100%;table-layout:fixed;}
+  .tt-table th{font-size:10px;padding:6px 2px;}
+  .tt-table .td-name{min-width:80px;width:80px;max-width:80px;font-size:11px;font-weight:800;padding:6px 4px;}
+  .tt-table td{height:52px;}
+  .cell{min-height:48px;border-radius:8px;padding:4px 3px;}
+  .cell .subj{font-size:12px;font-weight:800;}
+  .cell .cls{font-size:10px;}
+  .cell .merge-note{font-size:9px;}
   .tt-table .remark-cell,.tt-table .remark-head{min-width:48px;width:48px;}
 
   /* 교실별 시간표 */
@@ -859,7 +860,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .tab{padding:9px 7px;font-size:10px;}
   .stats{grid-template-columns:repeat(2,1fr);}
   .ct-master-table{min-width:760px;}
-  .tt-table{min-width:760px;}
+  .tt-table{min-width:0;width:100%;}
   .ct-h-p{min-width:30px;width:30px;}
   .ct-c{height:32px;}
   .body{padding:10px 8px 24px;}
@@ -2500,11 +2501,23 @@ function renderTT(){
   });
 
   // 총 교시 수 계산
-  const totalPeriods = DAYS.reduce((s,d)=>s+PERIODS[d],0);
-  let html = '<colgroup><col style="width:95px;min-width:95px;">';
-  for(let i=0;i<totalPeriods;i++) html+='<col>';
-  html += '<col style="width:58px;min-width:58px;"></colgroup>';
   const renderDays = isMobile() ? [mobileSelectedDay] : DAYS;
+  const totalPeriods = renderDays.reduce((s,d)=>s+PERIODS[d],0);
+  let html = '';
+  if(isMobile()){
+    // 모바일: 교사명 고정폭 + 교시별 충분한 너비
+    const pCount = PERIODS[mobileSelectedDay] || 6;
+    const pWidth = Math.floor((window.innerWidth - 80 - 48) / pCount); // 교사명80 비고48 제외
+    const pw = Math.max(pWidth, 52); // 최소 52px
+    html += '<colgroup>';
+    html += '<col style="width:80px;min-width:80px;">';
+    for(let i=0;i<pCount;i++) html+=`<col style="width:${pw}px;min-width:${pw}px;">`;
+    html += '<col style="width:48px;min-width:48px;"></colgroup>';
+  } else {
+    html += '<colgroup><col style="width:95px;min-width:95px;">';
+    for(let i=0;i<totalPeriods;i++) html+='<col>';
+    html += '<col style="width:58px;min-width:58px;"></colgroup>';
+  }
   html += '<thead><tr><th rowspan="2" style="min-width:95px;width:95px;">교사명</th>';
   renderDays.forEach(d=>{
     html += `<th colspan="${PERIODS[d]}" style="border-left:2px solid #C5CAD5;">${d}<span class="date-label">${fmtDate(getDateForDay(d))}</span></th>`;
