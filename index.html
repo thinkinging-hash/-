@@ -866,6 +866,55 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   .filter-bar{padding:8px 10px;}
   .days-grid{grid-template-columns:repeat(5,minmax(110px,1fr)) !important;}
 }
+
+/* ────── 모바일 요일 탭 ────── */
+.day-nav{
+  display:none; /* PC: 숨김 */
+}
+@media(max-width:768px){
+  .day-nav{
+    display:flex;
+    background:var(--white);
+    border-bottom:1px solid var(--border);
+    padding:0 10px;
+    gap:4px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    flex-shrink:0;
+  }
+  .day-nav::-webkit-scrollbar{display:none;}
+  .day-nav-btn{
+    flex:1;min-width:52px;
+    display:flex;flex-direction:column;align-items:center;
+    padding:7px 4px 6px;
+    font-size:11px;font-weight:700;
+    color:var(--text3);
+    border-bottom:2.5px solid transparent;
+    cursor:pointer;gap:2px;
+    white-space:nowrap;transition:color .15s;
+    background:none;border-top:none;border-left:none;border-right:none;
+    font-family:'Noto Sans KR',sans-serif;
+  }
+  .day-nav-btn.on{
+    color:var(--blue-mid);
+    border-bottom-color:var(--blue-mid);
+  }
+  .day-nav-btn.today{color:#EF4444;}
+  .day-nav-btn.today.on{color:var(--blue-mid);}
+  .day-nav-date{font-size:9px;font-weight:500;opacity:.75;}
+  .day-nav-dot{
+    width:5px;height:5px;border-radius:50%;
+    background:#EF4444;margin-top:1px;
+    display:none;
+  }
+  .day-nav-dot.show{display:block;}
+
+  /* 모바일: 시간표 wrap에서 선택 요일만 표시 */
+  .tt-table .day-col-hide{display:none;}
+  .ct-master-table .day-col-hide{display:none;}
+}
+
 /* ────── @media print ────── */
 @media print{
   body > *{display:none !important;}
@@ -1206,6 +1255,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <span class="legend-chip"><span class="legend-dot makeup"></span>승인되어 적용된 보강 수업</span>
       <span class="legend-chip"><span class="legend-dot event"></span>행사로 대체된 수업</span>
     </div>
+    <!-- 모바일 요일 탭 (PC에서는 display:none) -->
+    <div class="day-nav" id="dayNavTT"></div>
     <div class="tt-wrap">
       <table class="tt-table" id="ttTable"></table>
     </div>
@@ -1406,6 +1457,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <span class="legend-chip"><span class="legend-dot makeup"></span>보강 수업</span>
       <span class="legend-chip"><span class="legend-dot event"></span>행사</span>
     </div>
+    <!-- 모바일 요일 탭 (PC에서는 display:none) -->
+    <div class="day-nav" id="dayNavCT"></div>
     <div id="classtable-content"></div>
   </div>
 
@@ -2310,19 +2363,20 @@ function renderTT(){
   let html = '<colgroup><col style="width:95px;min-width:95px;">';
   for(let i=0;i<totalPeriods;i++) html+='<col>';
   html += '<col style="width:58px;min-width:58px;"></colgroup>';
+  const renderDays = isMobile() ? [mobileSelectedDay] : DAYS;
   html += '<thead><tr><th rowspan="2" style="min-width:95px;width:95px;">교사명</th>';
-  DAYS.forEach(d=>{
+  renderDays.forEach(d=>{
     html += `<th colspan="${PERIODS[d]}" style="border-left:2px solid #C5CAD5;">${d}<span class="date-label">${fmtDate(getDateForDay(d))}</span></th>`;
   });
   html += '<th rowspan="2" class="remark-head">비고</th></tr><tr>';
-  DAYS.forEach(d=>{
+  renderDays.forEach(d=>{
     for(let p=1;p<=PERIODS[d];p++) html+=`<th style="${p===1?'border-left:2px solid #C5CAD5;':''}">${p}</th>`;
   });
   html += '</tr></thead><tbody>';
 
   filtered.forEach((t, idx)=>{
     html += `<tr><td class="td-name"><span class="teacher-inline">${idx+1}. ${t.name}</span></td>`;
-    DAYS.forEach(d=>{
+    renderDays.forEach(d=>{
       const fullDayEvt = getFullDayEventForDate(getDateForDay(d));
       if(fullDayEvt){
         html += `<td colspan="${PERIODS[d]}" style="border-left:2px solid #C5CAD5;"><div class="cell event locked day-merged"><div class="subj">${escapeHtml(fullDayEvt.name)}</div><div class="cls">전체 일정 · ${fmtDate(getDateForDay(d))}</div></div></td>`;
@@ -2384,8 +2438,15 @@ function renderTT(){
     html += '<td class="remark-cell"></td></tr>';
   });
   html += '</tbody>';
+  // 모바일: 선택 요일만 남기고 나머지 열 숨기기
+  if(isMobile()){
+    // colgroup/th/td에 day-col-hide 클래스 적용은 JS로 처리
+    // table 렌더 후 buildDayNav 호출
+  }
   table.innerHTML = html;
   updateBadges();
+  // 모바일 요일 탭 빌드
+  buildDayNav('dayNavTT', 'setMobileDayTT');
 }
 
 // ─── 셀 클릭 → 패널 열기 ────────────────────────
@@ -4026,7 +4087,8 @@ function buildCtTable(){
   // row1: 학반 | 요일(colspan) | 비고
   th+='<tr>';
   th+=`<th rowspan="2" class="ct-h-blank"></th>`;
-  CLASS_TT_DAYS.forEach(day=>{
+  const ctRenderDays = isMobile() ? [mobileSelectedDay] : CLASS_TT_DAYS;
+  ctRenderDays.forEach(day=>{
     const maxP=CLASS_TT_MAXP[day],date=dayDates[day];
     const [,m,dv]=date.split('-');
     const isToday=date===today_str;
@@ -4037,7 +4099,7 @@ function buildCtTable(){
   th+='</tr>';
   // row2: 교시 번호
   th+=`<tr class="ct-h-p-row">`;
-  CLASS_TT_DAYS.forEach(day=>{
+  ctRenderDays.forEach(day=>{
     const maxP=CLASS_TT_MAXP[day],date=dayDates[day];
     for(let p=1;p<=maxP;p++){
       const isFirst=p===1,isToday=date===today_str;
@@ -4090,7 +4152,7 @@ function buildCtTable(){
     tb+=`<tr class="ct-row${isFirst?' ct-row-first':''}" style="${gVar}">`;
     tb+=`<td class="ct-cls-cell">${cls}</td>`;
 
-    CLASS_TT_DAYS.forEach(day=>{
+    ctRenderDays.forEach(day=>{
       const maxP=CLASS_TT_MAXP[day],dateStr=dayDates[day],isToday=dateStr===today_str;
       for(let p=1;p<=maxP;p++){
         const isFirst2=p===1;
@@ -4128,6 +4190,7 @@ function renderClassTable(){
   const container=document.getElementById('classtable-content');
   if(!container) return;
   const {weekLabel,th,tb}=buildCtTable();
+  buildDayNav('dayNavCT', 'setMobileDayCT');
   container.innerHTML=`
     <div style="background:var(--white);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:var(--shadow-lg);">
       <div class="ct-week-label">
@@ -4151,6 +4214,84 @@ function renderClassTable(){
 
 // ── (사용 안하지만 호환 유지) ──────────────────────────
 function renderInlineClassTable(){}
+
+
+// ═══════════════════════════════════════════════════════════
+// 모바일 요일 탭 – 공통
+// ═══════════════════════════════════════════════════════════
+let mobileSelectedDay = '월'; // 현재 선택된 요일
+
+function isMobile(){
+  return window.innerWidth <= 768;
+}
+
+function buildDayNav(navId, onClickFn){
+  const nav = document.getElementById(navId);
+  if(!nav) return;
+  const today_str = today();
+  nav.innerHTML = DAYS.map(day => {
+    const dateStr = getDateForDay(day);
+    const [,m,d] = dateStr.split('-');
+    const isToday = dateStr === today_str;
+    const isOn = day === mobileSelectedDay;
+    // 해당 요일에 교환/행사 있는지 도트 표시
+    const hasChange = exchanges.some(e => {
+      const ok = ['교환중','복원완료','보강중','보강완료'];
+      if(!ok.includes(e.status)) return false;
+      if(e.kind==='makeup') return (e.day||e.dayA||'')===day;
+      return e.dayA===day || e.dayB===day;
+    }) || events.some(e => {
+      if(e.status !== '적용') return false;
+      const dStr = getDateForDay(day);
+      return isDateWithinRange(dStr, e.startDate, e.endDate);
+    });
+    return `<button class="day-nav-btn${isOn?' on':''}${isToday?' today':''}"
+      onclick="${onClickFn}('${day}')">
+      ${day}
+      <span class="day-nav-date">${parseInt(m)}/${parseInt(d)}</span>
+      <span class="day-nav-dot${hasChange?' show':''}"></span>
+    </button>`;
+  }).join('');
+}
+
+function setMobileDay(day){
+  mobileSelectedDay = day;
+  // 두 탭의 nav 동기화
+  buildDayNav('dayNavTT', 'setMobileDayTT');
+  buildDayNav('dayNavCT', 'setMobileDayCT');
+  lastRenderDataHash = ''; // 강제 재렌더
+  renderTT();
+  renderClassTable();
+}
+function setMobileDayTT(day){
+  mobileSelectedDay = day;
+  buildDayNav('dayNavTT', 'setMobileDayTT');
+  buildDayNav('dayNavCT', 'setMobileDayCT');
+  lastRenderDataHash = '';
+  renderTT();
+}
+function setMobileDayCT(day){
+  mobileSelectedDay = day;
+  buildDayNav('dayNavTT', 'setMobileDayTT');
+  buildDayNav('dayNavCT', 'setMobileDayCT');
+  renderClassTable();
+}
+
+// 오늘 요일로 초기화
+(function initMobileDay(){
+  const today_str = today();
+  const dayNames = ['일','월','화','수','목','금','토'];
+  const dow = dayNames[new Date(today_str+'T00:00:00').getDay()];
+  if(DAYS.includes(dow)) mobileSelectedDay = dow;
+  else mobileSelectedDay = '월';
+})();
+
+// 화면 크기 변경 시 재렌더
+window.addEventListener('resize', ()=>{
+  lastRenderDataHash = '';
+  renderTT();
+  renderClassTable();
+});
 
 
 </script>
