@@ -2080,14 +2080,7 @@ async function apiPost(action, payload={}, signal){
   if(!isApiConfigured()) throw new Error('Apps Script URL을 먼저 넣어주세요.');
   const body = new URLSearchParams();
   body.set('action', action);
-  // 관리자 액션이면 _adminId 자동 주입 (새 인증 방식)
-  const adminActions = ['resetExchanges','approveExchange','rejectExchange','addEvent','removeEvent',
-    'addBlockedSubject','removeBlockedSubject','setSemesterConfig','registerHolidays'];
-  const enriched = {...payload};
-  if(adminActions.includes(action) && currentUser && currentUser.role === 'admin'){
-    enriched._adminId = currentUser.id;
-  }
-  Object.entries(enriched).forEach(([k,v])=> body.set(k, typeof v === 'string' ? v : JSON.stringify(v)));
+  Object.entries(payload).forEach(([k,v])=> body.set(k, typeof v === 'string' ? v : JSON.stringify(v)));
   const res = await fetch(APPS_SCRIPT_URL, {method:'POST', body, ...(signal?{signal}:{})});
   return await res.json();
 }
@@ -2168,12 +2161,7 @@ async function refreshRemoteData(opts={}){
 }
 function ensureAdmin(){
   if(isAdminMode) return true;
-  if(currentUser && currentUser.role === 'admin'){
-    isAdminMode = true;
-    sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
-    return true;
-  }
-  alert('이 기능은 관리자만 사용할 수 있습니다.');
+  alert('이 기능은 관리자만 사용할 수 있습니다. 오른쪽 아래 관리자 버튼으로 관리자 모드에 들어가세요.');
   return false;
 }
 async function requestAdminLogin(){
@@ -2202,15 +2190,7 @@ function logoutAdminMode(){
   _lastBadgeHash = ''; updateBadges(); // 뱃지 즉시 갱신
 }
 function getAdminPassword(){
-  // 구버전 호환: sessionStorage에 비밀번호가 있으면 그것 사용
   return sessionStorage.getItem(ADMIN_SESSION_KEY + '_pw') || '';
-}
-// 새 인증 방식: 현재 로그인한 관리자 ID를 함께 전송
-function getAdminAuth(){
-  return {
-    password: getAdminPassword(),           // 구버전 호환
-    _adminId: currentUser ? currentUser.id : '',  // 새 인증
-  };
 }
 function renderAdminControls(){
   let box = document.getElementById('adminFab');
@@ -4157,15 +4137,6 @@ async function resetExchanges(){
   if(!ensureAdmin()) return;
   if(!exchanges.length){ alert('초기화할 수업 결·보강 현황이 없습니다.'); return; }
   if(!confirm('모든 수업 결·보강 현황을 초기화할까요? 이 작업은 되돌릴 수 없습니다.')) return;
-  const isLocal = window.location.protocol === 'file:' || !isApiConfigured();
-  if(isLocal){
-    exchanges = [];
-    countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
-    localStorage.removeItem('school_exchanges');
-    scheduleRenderAll();
-    alert('모든 수업 결·보강 현황이 초기화되었습니다.');
-    return;
-  }
   try{
     const result = await apiPost('resetExchanges', {password:getAdminPassword()});
     if(!result.ok) throw new Error(result.message || '초기화에 실패했습니다.');
@@ -5133,13 +5104,20 @@ async function doLogin(){
         const tid  = setTimeout(()=>ctrl.abort(), 5000);
         const raw  = await apiPost('verifyUser', {id, pw}, ctrl.signal);
         clearTimeout(tid);
-        // verifyUser 액션을 Apps Script가 정상 처리한 경우만 사용
-        // (ok:true 또는 ok:false + message 가 명확히 있어야 함)
-        if(raw && typeof raw.ok === 'boolean') res = raw;
+        if(raw && raw.ok === true){
+          res = raw; // 서버 인증 성공
+        } else if(raw && raw.ok === false){
+          const msg = raw.message || '';
+          if(msg.includes('등록되지 않은') || msg.includes('미등록')){
+            res = null; // Members 시트에 없음 → 로컬 TT 폴백
+          } else {
+            res = raw; // 비밀번호 틀림 등 → 서버 메시지 그대로 표시
+          }
+        }
       } catch(e){ res = null; }
     }
 
-    // API 미사용 or 실패 or verifyUser 미구현 → 로컬 폴백
+    // API 미사용 / 타임아웃 / Members 미등록 → 로컬 TT 기반 폴백
     if(res === null) res = localVerifyUser(id, pw);
 
     if(res && res.ok){
@@ -5149,7 +5127,7 @@ async function doLogin(){
       if(res.role === 'admin'){
         isAdminMode = true;
         sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
-        sessionStorage.setItem(ADMIN_SESSION_KEY + '_pw', pw); // 구버전 호환
+        sessionStorage.setItem(ADMIN_SESSION_KEY + '_pw', pw);
       }
       onLoginSuccess(currentUser, false);
     } else {
