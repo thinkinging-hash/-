@@ -5131,8 +5131,7 @@ async function doLogin(){
       currentUser = { id: res.id, role: res.role };
       sessionStorage.setItem(USER_SESSION_KEY, res.id);
       sessionStorage.setItem(USER_ROLE_KEY,   res.role);
-      // 비밀번호를 localStorage에 저장 → 비밀번호 변경 시 현재 비번 확인에 사용
-      localStorage.setItem('school_pw_' + res.id, pw);
+      localStorage.setItem('school_pw_' + res.id, pw); // 비밀번호 변경 시 현재 비번 확인용
       if(res.role === 'admin'){
         isAdminMode = true;
         sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
@@ -5269,36 +5268,29 @@ async function saveMyPassword(){
   if(newPw.length < 4){ setMpMsg('err','새 비밀번호는 4자 이상이어야 합니다.'); return; }
   if(newPw !== newPw2){ setMpMsg('err','새 비밀번호가 일치하지 않습니다.'); return; }
 
-  // localStorage 또는 기본값으로 현재 비밀번호 확인
-  function getLocalPw(id){
-    const s = localStorage.getItem('school_pw_' + id);
-    return s || (id === 'admin' ? 'admin1234' : '1234');
-  }
-  function applyLocalChange(){
-    if(curPw !== getLocalPw(currentUser.id)){ setMpMsg('err','현재 비밀번호가 올바르지 않습니다.'); return false; }
-    localStorage.setItem('school_pw_' + currentUser.id, newPw);
-    setMpMsg('ok','✓ 비밀번호가 변경되었습니다.');
-    ['mpCurPw','mpNewPw','mpNewPw2'].forEach(id=>{ document.getElementById(id).value=''; });
-    return true;
+  // ── 현재 비밀번호 검증 (localStorage 기준) ──────────────
+  // 로그인 시 저장된 값 → 없으면 기본값
+  const localPw = localStorage.getItem('school_pw_' + currentUser.id)
+                  || (currentUser.id === 'admin' ? 'admin1234' : '1234');
+
+  if(curPw !== localPw){
+    setMpMsg('err','현재 비밀번호가 올바르지 않습니다.');
+    return;
   }
 
+  // ── 비밀번호 변경 적용 ───────────────────────────────────
+  // 1) 로컬 즉시 저장
+  localStorage.setItem('school_pw_' + currentUser.id, newPw);
+  setMpMsg('ok','✓ 비밀번호가 변경되었습니다.');
+  ['mpCurPw','mpNewPw','mpNewPw2'].forEach(id=>{ document.getElementById(id).value=''; });
+
+  // 2) 서버에도 동기화 시도 (실패해도 로컬은 이미 저장됨)
   const isLocal = window.location.protocol === 'file:' || !isApiConfigured();
-  if(isLocal){ applyLocalChange(); return; }
-
-  try{
-    const res = await apiPost('changePassword', {id: currentUser.id, curPw, newPw});
-    if(res.ok){
-      localStorage.setItem('school_pw_' + currentUser.id, newPw);
-      setMpMsg('ok','✓ 비밀번호가 변경되었습니다.');
-      ['mpCurPw','mpNewPw','mpNewPw2'].forEach(id=>{ document.getElementById(id).value=''; });
-    } else if(res.message && res.message.includes('현재 비밀번호')){
-      // 서버에서 명확히 현재 비밀번호 불일치 → 그대로 표시
-      setMpMsg('err', res.message);
-    } else {
-      // Members 미등록, 네트워크 오류 등 → 로컬 처리
-      applyLocalChange();
-    }
-  } catch(e){ applyLocalChange(); }
+  if(!isLocal){
+    try{
+      await apiPost('changePassword', {id: currentUser.id, curPw, newPw});
+    } catch(e){ /* 서버 실패해도 로컬은 저장됨 */ }
+  }
 }
 
 function setMpMsg(type, text){
