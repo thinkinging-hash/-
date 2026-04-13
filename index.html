@@ -3668,7 +3668,7 @@ async function approve(id){
   }
 
   scheduleRenderAll();
-  apiPost('approveExchange', {password:getAdminPassword(), id}).then(result=>{
+  apiPost('approveExchange', {password:getAdminPassword(), id, _userId: currentUser ? currentUser.id : ''}).then(result=>{
     if(!result.ok){
       e.status = prevStatus;
       countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
@@ -3703,7 +3703,7 @@ async function reject(id){
   }
 
   scheduleRenderAll();
-  apiPost('rejectExchange', {password:getAdminPassword(), id}).then(result=>{
+  apiPost('rejectExchange', {password:getAdminPassword(), id, _userId: currentUser ? currentUser.id : ''}).then(result=>{
     if(!result.ok){
       e.status = prevStatus;
       countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
@@ -5104,20 +5104,13 @@ async function doLogin(){
         const tid  = setTimeout(()=>ctrl.abort(), 5000);
         const raw  = await apiPost('verifyUser', {id, pw}, ctrl.signal);
         clearTimeout(tid);
-        if(raw && raw.ok === true){
-          res = raw; // 서버 인증 성공
-        } else if(raw && raw.ok === false){
-          const msg = raw.message || '';
-          if(msg.includes('등록되지 않은') || msg.includes('미등록')){
-            res = null; // Members 시트에 없음 → 로컬 TT 폴백
-          } else {
-            res = raw; // 비밀번호 틀림 등 → 서버 메시지 그대로 표시
-          }
-        }
+        // verifyUser 액션을 Apps Script가 정상 처리한 경우만 사용
+        // (ok:true 또는 ok:false + message 가 명확히 있어야 함)
+        if(raw && typeof raw.ok === 'boolean') res = raw;
       } catch(e){ res = null; }
     }
 
-    // API 미사용 / 타임아웃 / Members 미등록 → 로컬 TT 기반 폴백
+    // API 미사용 or 실패 or verifyUser 미구현 → 로컬 폴백
     if(res === null) res = localVerifyUser(id, pw);
 
     if(res && res.ok){
@@ -5127,7 +5120,6 @@ async function doLogin(){
       if(res.role === 'admin'){
         isAdminMode = true;
         sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
-        sessionStorage.setItem(ADMIN_SESSION_KEY + '_pw', pw);
       }
       onLoginSuccess(currentUser, false);
     } else {
