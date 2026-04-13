@@ -2080,7 +2080,14 @@ async function apiPost(action, payload={}, signal){
   if(!isApiConfigured()) throw new Error('Apps Script URL을 먼저 넣어주세요.');
   const body = new URLSearchParams();
   body.set('action', action);
-  Object.entries(payload).forEach(([k,v])=> body.set(k, typeof v === 'string' ? v : JSON.stringify(v)));
+  // 관리자 인증 정보 자동 주입: password 없으면 현재 유저 정보 함께 전송
+  const enriched = {...payload};
+  if(!enriched.password) enriched.password = getAdminPassword();
+  if(currentUser && currentUser.role === 'admin'){
+    enriched._userId = currentUser.id;
+    enriched._userRole = currentUser.role;
+  }
+  Object.entries(enriched).forEach(([k,v])=> body.set(k, typeof v === 'string' ? v : JSON.stringify(v)));
   const res = await fetch(APPS_SCRIPT_URL, {method:'POST', body, ...(signal?{signal}:{})});
   return await res.json();
 }
@@ -2160,8 +2167,8 @@ async function refreshRemoteData(opts={}){
   }
 }
 function ensureAdmin(){
-  // isAdminMode 또는 로그인된 유저가 admin 역할이면 허용
   if(isAdminMode) return true;
+  // 로그인된 유저가 admin 역할이면 isAdminMode 동기화 후 허용
   if(currentUser && currentUser.role === 'admin'){
     isAdminMode = true;
     sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
@@ -2196,7 +2203,15 @@ function logoutAdminMode(){
   _lastBadgeHash = ''; updateBadges(); // 뱃지 즉시 갱신
 }
 function getAdminPassword(){
-  return sessionStorage.getItem(ADMIN_SESSION_KEY + '_pw') || '';
+  // 우선순위: 1) sessionStorage에 저장된 비번, 2) 현재 로그인 유저의 로컬 비번
+  const stored = sessionStorage.getItem(ADMIN_SESSION_KEY + '_pw');
+  if(stored) return stored;
+  // 로그인 유저가 관리자면 localStorage에 저장된 비번 사용
+  if(currentUser && currentUser.role === 'admin'){
+    const localPw = localStorage.getItem('school_pw_' + currentUser.id);
+    if(localPw) return localPw;
+  }
+  return '';
 }
 function renderAdminControls(){
   let box = document.getElementById('adminFab');
@@ -2774,17 +2789,6 @@ async function addEvent(){
   const duplicate = getActiveEvents().find(e=> rangesOverlap(startDate, endDate, e.startDate, e.endDate) && String(e.grade)===String(grade) && String(e.classNo||'all')===String(classNo) && e.scope===scope && (scope==='day' || Number(e.period)===Number(period)) );
   if(duplicate){ alert(`해당 조건과 기간이 겹치는 행사(${duplicate.name})가 이미 등록되어 있습니다.`); return; }
   const record = normalizeEvent({id:genEventId(), createdAt:today(), startDate, endDate, grade, classNo, scope, period: scope==='day' ? null : period, name, status:'적용'});
-  const isLocal = window.location.protocol === 'file:' || !isApiConfigured();
-  if(isLocal){
-    events.push(record);
-    countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
-    localStorage.setItem('school_events', JSON.stringify(events));
-    scheduleRenderAll();
-    document.getElementById('eventName').value='';
-    updateEventPreview();
-    alert('행사가 등록되었습니다.');
-    return;
-  }
   try{
     const result = await apiPost('addEvent', {password:getAdminPassword(), record});
     if(!result.ok) throw new Error(result.message || '행사 등록에 실패했습니다.');
@@ -2798,14 +2802,6 @@ async function addEvent(){
 async function removeEvent(id){
   if(!ensureAdmin()) return;
   if(!confirm('이 행사를 삭제할까요? 해당 시간표는 원래 수업으로 즉시 복귀합니다.')) return;
-  const isLocal = window.location.protocol === 'file:' || !isApiConfigured();
-  if(isLocal){
-    events = events.filter(e=>e.id!==id);
-    countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
-    localStorage.setItem('school_events', JSON.stringify(events));
-    scheduleRenderAll();
-    return;
-  }
   try{
     const result = await apiPost('removeEvent', {password:getAdminPassword(), id});
     if(!result.ok) throw new Error(result.message || '행사 삭제에 실패했습니다.');
@@ -3957,15 +3953,6 @@ async function addBlockedSubject(){
   const dup = getBlockedSubjects().find(b=>b.teacher===teacher && b.subject===subject && Number(b.period)===Number(period));
   if(dup){ alert('이미 등록된 교환 불가 과목입니다.'); return; }
   const record = normalizeBlockedItem({id:genBlockedId(), createdAt:today(), teacher, date, subject, period, status:'적용'});
-  const isLocalB = window.location.protocol === 'file:' || !isApiConfigured();
-  if(isLocalB){
-    blockedSubjects.push(record);
-    countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
-    localStorage.setItem('school_blocked', JSON.stringify(blockedSubjects));
-    scheduleRenderAll();
-    alert('교환 불가 과목이 등록되었습니다.');
-    return;
-  }
   try{
     const result = await apiPost('addBlockedSubject', {password:getAdminPassword(), record});
     if(!result.ok) throw new Error(result.message || '교환 불가 과목 등록에 실패했습니다.');
@@ -3976,14 +3963,6 @@ async function addBlockedSubject(){
 async function removeBlockedSubject(id){
   if(!ensureAdmin()) return;
   if(!confirm('이 교환 불가 과목 등록을 삭제할까요?')) return;
-  const isLocalB = window.location.protocol === 'file:' || !isApiConfigured();
-  if(isLocalB){
-    blockedSubjects = blockedSubjects.filter(b=>b.id!==id);
-    countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
-    localStorage.setItem('school_blocked', JSON.stringify(blockedSubjects));
-    scheduleRenderAll();
-    return;
-  }
   try{
     const result = await apiPost('removeBlockedSubject', {password:getAdminPassword(), id});
     if(!result.ok) throw new Error(result.message || '교환 불가 과목 삭제에 실패했습니다.');
@@ -4130,7 +4109,6 @@ async function saveSemesterConfig(){
   semesterConfig = config;
   applySemesterConfig();
   renderSemesterPreview();
-  localStorage.setItem('school_semester', JSON.stringify(config));
   // 서버 저장 시도 (지원하면 저장, 아니면 로컬만)
   try{
     const result = await apiPost('setSemesterConfig', {password:getAdminPassword(), config});
@@ -4184,7 +4162,7 @@ async function resetExchanges(){
   const isLocal = window.location.protocol === 'file:' || !isApiConfigured();
   if(isLocal){
     exchanges = [];
-    countCache.clear(); lastRenderDataHash = ''; _lastBadgeHash = '';
+    countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
     localStorage.removeItem('school_exchanges');
     scheduleRenderAll();
     alert('모든 수업 결·보강 현황이 초기화되었습니다.');
@@ -4195,7 +4173,18 @@ async function resetExchanges(){
     if(!result.ok) throw new Error(result.message || '초기화에 실패했습니다.');
     applyServerBundle(result);
     alert('모든 수업 결·보강 현황이 초기화되었습니다.');
-  }catch(err){ alert(err.message || '초기화에 실패했습니다.'); }
+  }catch(err){
+    // 서버 인증 실패해도 로컬에서 초기화 후 다음 sync에서 반영
+    if(err.message && err.message.includes('비밀번호')){
+      if(confirm('서버 인증 실패. 로컬에서만 초기화할까요?\n(다음 새로고침 시 서버 데이터로 복원될 수 있습니다)')){
+        exchanges = [];
+        countCache.clear(); lastRenderDataHash=''; _lastBadgeHash='';
+        scheduleRenderAll();
+      }
+    } else {
+      alert(err.message || '초기화에 실패했습니다.');
+    }
+  }
 }
 
 async function initApp(){
@@ -5173,6 +5162,8 @@ async function doLogin(){
       if(res.role === 'admin'){
         isAdminMode = true;
         sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
+        // Apps Script API 호출 시 관리자 비밀번호로 사용
+        sessionStorage.setItem(ADMIN_SESSION_KEY + '_pw', pw);
       }
       onLoginSuccess(currentUser, false);
     } else {
