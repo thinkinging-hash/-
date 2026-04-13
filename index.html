@@ -5131,7 +5131,6 @@ async function doLogin(){
       currentUser = { id: res.id, role: res.role };
       sessionStorage.setItem(USER_SESSION_KEY, res.id);
       sessionStorage.setItem(USER_ROLE_KEY,   res.role);
-      localStorage.setItem('school_pw_' + res.id, pw); // 비밀번호 변경 시 현재 비번 확인용
       if(res.role === 'admin'){
         isAdminMode = true;
         sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
@@ -5268,50 +5267,64 @@ async function saveMyPassword(){
   if(newPw.length < 4){ setMpMsg('err','새 비밀번호는 4자 이상이어야 합니다.'); return; }
   if(newPw !== newPw2){ setMpMsg('err','새 비밀번호가 일치하지 않습니다.'); return; }
 
-  const uid = currentUser.id;
+  const uid       = currentUser.id;
+  const defaultPw = uid === 'admin' ? 'admin1234' : '1234';
 
-  // localStorage에 저장된 현재 비밀번호 (로그인 시 저장됨)
-  const storedPw = localStorage.getItem('school_pw_' + uid);
-
-  // ── 로컬에 비밀번호가 있으면 → 먼저 로컬 검증 ───────────
-  if(storedPw !== null){
-    if(curPw !== storedPw){
-      setMpMsg('err','현재 비밀번호가 올바르지 않습니다.');
-      return;
-    }
-    // 로컬 검증 통과 → localStorage 즉시 업데이트
-    localStorage.setItem('school_pw_' + uid, newPw);
-    setMpMsg('ok','✓ 비밀번호가 변경되었습니다.');
-    ['mpCurPw','mpNewPw','mpNewPw2'].forEach(i=>{ document.getElementById(i).value=''; });
-    // 서버 동기화 (백그라운드)
-    const isLocal = window.location.protocol === 'file:' || !isApiConfigured();
-    if(!isLocal){ apiPost('changePassword', {id: uid, curPw, newPw}).catch(()=>{}); }
-    return;
-  }
-
-  // ── localStorage에 없으면 → 서버에 직접 확인 ────────────
+  // ── 로컬(file://) 환경 ─────────────────────────────────
   const isLocal = window.location.protocol === 'file:' || !isApiConfigured();
   if(isLocal){
-    // 로컬 환경 + 저장값 없음 → 기본 비밀번호로 검증
-    const defaultPw = uid === 'admin' ? 'admin1234' : '1234';
-    if(curPw !== defaultPw){ setMpMsg('err','현재 비밀번호가 올바르지 않습니다.'); return; }
+    const storedPw = localStorage.getItem('school_pw_' + uid) || defaultPw;
+    if(curPw !== storedPw){ setMpMsg('err','현재 비밀번호가 올바르지 않습니다.'); return; }
     localStorage.setItem('school_pw_' + uid, newPw);
     setMpMsg('ok','✓ 비밀번호가 변경되었습니다.');
     ['mpCurPw','mpNewPw','mpNewPw2'].forEach(i=>{ document.getElementById(i).value=''; });
     return;
   }
 
-  // 서버에서 현재 비번 검증 + 변경
+  // ── GitHub Pages (서버 환경) ───────────────────────────
+  const btn = document.querySelector('.mypage-btn.primary');
+  if(btn){ btn.disabled = true; btn.textContent = '저장 중...'; }
+  const resetBtn = () => {
+    if(btn){ btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 비밀번호 저장'; }
+  };
+
   try{
+    // 1차 시도: 서버에서 현재 비번 확인 후 변경
     const res = await apiPost('changePassword', {id: uid, curPw, newPw});
+
     if(res.ok){
+      // 서버 저장 성공
       localStorage.setItem('school_pw_' + uid, newPw);
+      resetBtn();
       setMpMsg('ok','✓ 비밀번호가 변경되었습니다.');
       ['mpCurPw','mpNewPw','mpNewPw2'].forEach(i=>{ document.getElementById(i).value=''; });
-    } else {
-      setMpMsg('err', res.message || '비밀번호 변경에 실패했습니다.');
+      return;
     }
+
+    // Members 시트에 없음 → 현재 비번이 기본값인지 확인 후 서버에 자동 등록
+    if(res.message && res.message.includes('등록되지 않은')){
+      const storedPw = localStorage.getItem('school_pw_' + uid) || defaultPw;
+      if(curPw !== storedPw){
+        resetBtn();
+        setMpMsg('err','현재 비밀번호가 올바르지 않습니다.');
+        return;
+      }
+      // 서버에 계정 등록 (현재 비번으로 등록 후 새 비번으로 변경)
+      const role = currentUser.role || 'teacher';
+      await apiPost('addMember', {id: uid, pw: newPw, role});
+      localStorage.setItem('school_pw_' + uid, newPw);
+      resetBtn();
+      setMpMsg('ok','✓ 비밀번호가 변경되었습니다.');
+      ['mpCurPw','mpNewPw','mpNewPw2'].forEach(i=>{ document.getElementById(i).value=''; });
+      return;
+    }
+
+    // 현재 비밀번호 불일치 등 그 외 오류
+    resetBtn();
+    setMpMsg('err', res.message || '비밀번호 변경에 실패했습니다.');
+
   } catch(e){
+    resetBtn();
     setMpMsg('err','서버 연결 오류. 잠시 후 다시 시도해 주세요.');
   }
 }
