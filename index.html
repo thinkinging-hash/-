@@ -104,11 +104,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* ────── 시간표 테이블 ────── */
 .tt-wrap{
-  overflow-x:auto;background:var(--white);
+  overflow-x:auto;overflow-y:auto;background:var(--white);
   border-radius:20px;border:1px solid var(--border);
   box-shadow:var(--shadow-lg);
+  max-height:calc(100vh - 130px);
 }
-.tt-table{border-collapse:collapse;width:100%;min-width:1500px;table-layout:fixed;}
+.tt-table thead tr:first-child th{position:sticky;top:0;z-index:11;background:linear-gradient(180deg,#F1F5F9 0%,#E8EDF5 100%);}
+.tt-table thead tr:last-child th{position:sticky;z-index:10;background:linear-gradient(180deg,#F1F5F9 0%,#E8EDF5 100%);}
+.tt-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1500px;table-layout:fixed;}
 .tt-table th{
   background:linear-gradient(180deg,#F1F5F9 0%,#E8EDF5 100%);
   font-size:10px;font-weight:700;color:var(--text2);
@@ -2971,6 +2974,15 @@ function renderTT(){
     // table 렌더 후 buildDayNav 호출
   }
   table.innerHTML = html;
+  requestAnimationFrame(()=>{
+    const firstRow = table.querySelector('thead tr:first-child');
+    if(firstRow){
+      const h = firstRow.getBoundingClientRect().height;
+      table.querySelectorAll('thead tr:last-child th').forEach(th=>{
+        th.style.top = h + 'px';
+      });
+    }
+  });
   updateBadges();
   // 모바일 요일 탭 빌드
   buildDayNav('dayNavTT', 'setMobileDayTT');
