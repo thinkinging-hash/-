@@ -2235,6 +2235,10 @@ function applyServerData(data){
     semesterConfig = {...semesterConfig, ...data.semesterConfig};
     applySemesterConfig();
   }
+  // 창체 일정 서버에서 받아오기
+  if(data.chancheSchedules && typeof data.chancheSchedules === 'object'){
+    try{ localStorage.setItem(CHANCHE_KEY, JSON.stringify(data.chancheSchedules)); }catch(e){}
+  }
   countCache.clear();
 }
 function renderAll(){
@@ -4361,8 +4365,20 @@ function loadChancheSchedules(){
     return raw ? JSON.parse(raw) : {};
   }catch(e){ return {}; }
 }
-function saveChancheSchedules(data){
+async function saveChancheSchedules(data){
+  // 항상 localStorage에 먼저 저장 (오프라인/로컬 환경 보장)
   try{ localStorage.setItem(CHANCHE_KEY, JSON.stringify(data)); }catch(e){}
+  // API가 설정된 경우 서버에도 저장
+  if(!isApiConfigured()) return;
+  try{
+    const result = await apiPost('setChancheSchedules', {
+      password: getAdminPassword(),
+      chancheSchedules: data
+    });
+    if(!result.ok) console.warn('[창체] 서버 저장 실패:', result.message);
+  } catch(e){
+    console.warn('[창체] 서버 저장 오류:', e.message);
+  }
 }
 
 // TT 데이터에서 해당 교사의 창체 유형 파싱
@@ -4571,7 +4587,7 @@ function getTeachersForChancheTypes(types, dateStr){
 }
 
 // ── 창체 일정 등록 ────────────────────────────────────────
-function addChancheSchedule(){
+async function addChancheSchedule(){
   if(!ensureAdmin()) return;
   const di = document.getElementById('chancheDateInput');
   const dateStr = di?.value;
@@ -4582,7 +4598,7 @@ function addChancheSchedule(){
   if(!selected.length){ alert('창체 종류를 하나 이상 선택해 주세요.'); return; }
   const schedules = loadChancheSchedules();
   schedules[dateStr] = selected;
-  saveChancheSchedules(schedules);
+  await saveChancheSchedules(schedules);
   renderChancheCal();
   renderChancheScheduleList();
   renderChanchePreviewDateSelect();
@@ -4628,11 +4644,11 @@ function editChancheSchedule(dateStr){
   document.getElementById('chancheCalGrid')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
-function deleteChancheSchedule(dateStr){
+async function deleteChancheSchedule(dateStr){
   if(!confirm(`${dateStr} 창체 일정을 삭제하시겠습니까?`)) return;
   const schedules = loadChancheSchedules();
   delete schedules[dateStr];
-  saveChancheSchedules(schedules);
+  await saveChancheSchedules(schedules);
   renderChancheCal();
   renderChancheScheduleList();
   renderChanchePreviewDateSelect();
