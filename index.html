@@ -2405,10 +2405,12 @@ function applySemesterConfig(){
   if(monthSel){
     const months = getSemesterMonths();
     monthSel.innerHTML = months.map(m=>`<option value="${m}">${m}월</option>`).join('');
-    // 항상 오늘 날짜 기준으로 월/주차 설정
+    // 이미 사용자가 선택한 월/주차가 있으면 유지, 없을 때만 오늘 기준으로 설정
     const todaySel = getTodaySelection();
-    selectedMonth = months.includes(todaySel.month) ? todaySel.month : months[0];
-    selectedWeek  = todaySel.week;
+    if(!selectedMonth || !months.includes(selectedMonth)){
+      selectedMonth = months.includes(todaySel.month) ? todaySel.month : months[0];
+      selectedWeek  = todaySel.week;
+    }
     monthSel.value = String(selectedMonth);
     syncWeekOptions(selectedWeek);
   }
@@ -4730,7 +4732,7 @@ async function initApp(){
     console.error(err);
   });
   if(syncTimer) clearInterval(syncTimer);
-  syncTimer = setInterval(()=>refreshRemoteData({silent:false, force:false}).catch(()=>{}), 15000);
+  syncTimer = setInterval(()=>refreshRemoteData({silent:false, force:false}).catch(()=>{}), 60000);
 }
 
 // ── JS 기반 tooltip (overflow:hidden 우회, position:fixed) ──────────
