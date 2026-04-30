@@ -2223,6 +2223,11 @@ async function apiPost(action, payload={}, signal){
   if(!isApiConfigured()) throw new Error('Apps Script URL을 먼저 넣어주세요.');
   const body = new URLSearchParams();
   body.set('action', action);
+  // 현재 로그인 유저 정보 자동 첨부 (GAS에서 역할 기반 권한 검증용)
+  if(currentUser){
+    if(!payload._userId)   payload = {...payload, _userId:   currentUser.id};
+    if(!payload._userRole) payload = {...payload, _userRole: currentUser.role};
+  }
   Object.entries(payload).forEach(([k,v])=> body.set(k, typeof v === 'string' ? v : JSON.stringify(v)));
   const res = await fetch(APPS_SCRIPT_URL, {method:'POST', body, ...(signal?{signal}:{})});
   return await res.json();
